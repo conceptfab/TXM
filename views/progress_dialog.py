@@ -1,5 +1,6 @@
 import c4d
 
+from core.constants import UIConstants
 from core.logger import Logger
 
 logger = Logger()
@@ -63,7 +64,7 @@ class ProgressDialog(c4d.gui.GeDialog):
             self.AddStaticText(
                 self.ID_TEXT_MESSAGE,
                 c4d.BFH_SCALEFIT,
-                initw=0,
+                initw=400,
                 inith=40,
                 name=self.message,
             )
@@ -80,8 +81,8 @@ class ProgressDialog(c4d.gui.GeDialog):
                     c4d.CUSTOMGUI_PROGRESSBAR,
                     "",
                     c4d.BFH_SCALEFIT | c4d.BFV_SCALEFIT,
-                    300,  # szerokość
-                    8,  # wysokość
+                    UIConstants.PROGRESS_BAR_WIDTH,  # szerokość z stałej
+                    UIConstants.PROGRESS_BAR_HEIGHT,  # wysokość z stałej
                 )
                 self.GroupEnd()
 

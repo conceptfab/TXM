@@ -545,8 +545,8 @@ class ProgressController:
             # Usunięto flagę BFV_FLOATING_DIALOG, która nie istnieje
             result = progress_dialog.Open(
                 dialog_type,  # Dialog asynchroniczny lub modalny
-                defaultw=400,  # Stała szerokość
-                defaulth=150,  # Stała wysokość
+                defaultw=UIConstants.PROGRESS_DIALOG_WIDTH,  # Używamy stałej szerokości
+                defaulth=UIConstants.PROGRESS_DIALOG_HEIGHT,  # Używamy stałej wysokości
                 flags=c4d.BFH_CENTER,  # Tylko flaga centrowania
             )
 

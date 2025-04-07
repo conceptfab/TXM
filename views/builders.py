@@ -76,19 +76,46 @@ class TreeViewBuilder:
             layout.SetLong(UIConstants.ID_FULL_PATH, c4d.LV_USER)
 
             # Ustawienie szerokości kolumn
-            layout.SetLong(UIConstants.ID_SELECTION + 1000, 50)
-            layout.SetLong(UIConstants.ID_TEXTURE_NAME + 1000, 180)
-            layout.SetLong(UIConstants.ID_SZEROKOSC + 1000, 80)
-            layout.SetLong(UIConstants.ID_WYSOKOSC + 1000, 80)
-            layout.SetLong(UIConstants.ID_GLEBIA_BITOWA + 1000, 100)
-            layout.SetLong(UIConstants.ID_PROFIL_KOLORU + 1000, 120)
-            layout.SetLong(UIConstants.ID_ROZMIAR_MB + 1000, 100)
-            layout.SetLong(UIConstants.ID_KANAL_ALPHA + 1000, 90)
-            layout.SetLong(UIConstants.ID_FLAGA + 1000, 120)
-            layout.SetLong(UIConstants.ID_DATA_UTWORZENIA + 1000, 150)
-            layout.SetLong(UIConstants.ID_DATA_MODYFIKACJI + 1000, 150)
-            layout.SetLong(UIConstants.ID_HASH + 1000, 330)
-            layout.SetLong(UIConstants.ID_FULL_PATH + 1000, 250)
+            layout.SetLong(
+                UIConstants.ID_SELECTION + 1000, UIConstants.COLUMN_SELECTION_WIDTH
+            )
+            layout.SetLong(
+                UIConstants.ID_TEXTURE_NAME + 1000,
+                UIConstants.COLUMN_TEXTURE_NAME_WIDTH,
+            )
+            layout.SetLong(
+                UIConstants.ID_SZEROKOSC + 1000, UIConstants.COLUMN_WIDTH_WIDTH
+            )
+            layout.SetLong(
+                UIConstants.ID_WYSOKOSC + 1000, UIConstants.COLUMN_HEIGHT_WIDTH
+            )
+            layout.SetLong(
+                UIConstants.ID_GLEBIA_BITOWA + 1000, UIConstants.COLUMN_BIT_DEPTH_WIDTH
+            )
+            layout.SetLong(
+                UIConstants.ID_PROFIL_KOLORU + 1000,
+                UIConstants.COLUMN_COLOR_PROFILE_WIDTH,
+            )
+            layout.SetLong(
+                UIConstants.ID_ROZMIAR_MB + 1000, UIConstants.COLUMN_SIZE_MB_WIDTH
+            )
+            layout.SetLong(
+                UIConstants.ID_KANAL_ALPHA + 1000,
+                UIConstants.COLUMN_ALPHA_CHANNEL_WIDTH,
+            )
+            layout.SetLong(UIConstants.ID_FLAGA + 1000, UIConstants.COLUMN_FLAG_WIDTH)
+            layout.SetLong(
+                UIConstants.ID_DATA_UTWORZENIA + 1000,
+                UIConstants.COLUMN_CREATION_DATE_WIDTH,
+            )
+            layout.SetLong(
+                UIConstants.ID_DATA_MODYFIKACJI + 1000,
+                UIConstants.COLUMN_MODIFICATION_DATE_WIDTH,
+            )
+            layout.SetLong(UIConstants.ID_HASH + 1000, UIConstants.COLUMN_HASH_WIDTH)
+            layout.SetLong(
+                UIConstants.ID_FULL_PATH + 1000, UIConstants.COLUMN_FULL_PATH_WIDTH
+            )
 
             # Liczba kolumn
             total_columns = 13
