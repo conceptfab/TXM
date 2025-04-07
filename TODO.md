@@ -1,0 +1,1 @@
+logger.py nie reaguje na plik sterujący INFO, DEBUG, CRITICAL
