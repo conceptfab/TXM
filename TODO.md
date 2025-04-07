@@ -5,3 +5,5 @@
 5. segregowanie grup duplikatów - oryginał jest zawsze pierwszy (na górze)
 6. Dodanie status bar z statystyką analizy
 7. Sortowanie tabel
+8. Kolorowanie kategorii plików
+9. Przechowywanie tymczasowych danych, sprawdzanie ilości plików w folderze tex
