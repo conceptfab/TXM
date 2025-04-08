@@ -654,15 +654,18 @@ class Logger:
         initial_mode = Logger.DEFAULT_LOG_MODE
         file_logging_enabled = False
 
+        # Najpierw sprawdź pliki z dokładną nazwą (bez sprawdzania rozmiaru)
         for filename, mode in level_files.items():
             # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
             for suffix in ["", Logger.LOG_FILE_SUFFIX]:
                 filepath = os.path.join(script_dir, filename + suffix)
                 try:
                     if os.path.isfile(filepath):
+                        # Akceptujemy plik niezależnie od rozmiaru
                         initial_mode = mode
                         file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
-                        break
+                        print(f"Znaleziono plik kontrolny: {filepath}")
+                        return initial_mode, file_logging_enabled
                 except Exception as e:
                     # Zostawiamy ten print dla krytycznych błędów
                     print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
