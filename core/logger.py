@@ -689,20 +689,25 @@ class Logger:
             print(f"Znaleziono plik kontrolny: {critical_log_path}")
             return Logger.LOG_MODE_CRITICAL, True
 
-        # Potem sprawdź inne tryby
+        # Sprawdź pliki o zerowej wielkości zgodnie z dokumentacją
         for filename, mode in level_files.items():
-            if filename == "CRITICAL":  # Pomijamy, już sprawdzone
-                continue
+            # Sprawdź plik bez rozszerzenia
+            filepath = os.path.join(script_dir, filename)
+            if os.path.exists(filepath):
+                # Sprawdź czy plik ma rozmiar 0
+                if os.path.getsize(filepath) == 0:
+                    print(f"Znaleziono plik kontrolny zerowej wielkości: {filepath}")
+                    return mode, False
 
-            # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
-            for suffix in ["", Logger.LOG_FILE_SUFFIX]:
-                filepath = os.path.join(script_dir, filename + suffix)
-                try:
-                    if os.path.exists(filepath):
-                        print(f"Znaleziono plik kontrolny: {filepath}")
-                        return mode, suffix == Logger.LOG_FILE_SUFFIX
-                except Exception as e:
-                    print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
+            # Sprawdź plik z sufiksem _LOG
+            log_filepath = os.path.join(script_dir, filename + Logger.LOG_FILE_SUFFIX)
+            if os.path.exists(log_filepath):
+                # Sprawdź czy plik ma rozmiar 0
+                if os.path.getsize(log_filepath) == 0:
+                    print(
+                        f"Znaleziono plik kontrolny zerowej wielkości: {log_filepath}"
+                    )
+                    return mode, True
 
         print(
             f"Nie znaleziono plików kontrolnych. Używam trybu domyślnego: {initial_mode}"
