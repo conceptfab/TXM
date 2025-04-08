@@ -721,7 +721,7 @@ class TextureProcessor:
 
     def _pobierz_metadane_graficzne_pliku(
         self, index_meta: Tuple[int, MetadanePliku]
-    ) -> Tuple[int, Dict[str, Any], str, str]:
+    ) -> Optional[Tuple[int, Dict[str, Any], str, str]]:
         """
         Pobiera metadane graficzne dla pojedynczego pliku.
 
@@ -729,14 +729,14 @@ class TextureProcessor:
             index_meta: Krotka zawierająca indeks pliku i obiekt MetadanePliku.
 
         Returns:
-            Krotka (indeks, słownik_metadanych, nazwa_narzędzia, błąd).
+            Krotka (indeks, słownik_metadanych, nazwa_narzędzia, błąd) lub None w przypadku błędu.
         """
-        index, meta = index_meta
-
-        if meta.rozszerzenie == "pozostałe":
-            return index, None, "", ""
-
         try:
+            index, meta = index_meta
+
+            if meta.rozszerzenie == "pozostałe":
+                return index, None, "", ""
+
             # Użyj oiiotool do wszystkich obsługiwanych formatów graficznych
             if self.oiiotool_dostępny:
                 try:
@@ -757,11 +757,13 @@ class TextureProcessor:
                     "Nie znaleziono narzędzia oiiotool, które jest wymagane do analizy plików graficznych",
                 )
 
+            # Domyślny zwrot w przypadku braku obsługi formatu
+            return index, None, "brak", "Nieobsługiwany format pliku"
         except Exception as e:
             logger.exception(
-                f"Krytyczny błąd podczas pobierania metadanych dla {meta.ścieżka}"
+                f"Krytyczny błąd podczas pobierania metadanych dla {meta.ścieżka if 'meta' in locals() else 'nieznanego pliku'}"
             )
-            return index, None, "błąd", str(e)
+            return None  # Zwracamy None zamiast rzucać wyjątek
 
     def _pobierz_metadane_oiiotool(
         self, meta: MetadanePliku
@@ -794,17 +796,15 @@ class TextureProcessor:
                 if isinstance(stderr, bytes):
                     stderr = stderr.decode("utf-8", errors="replace")
             except UnicodeDecodeError:
-                # Jeśli nie uda się zdekodować jako UTF-8, spróbuj z domyślnym kodowaniem systemu
-                try:
-                    if isinstance(stdout, bytes):
-                        stdout = stdout.decode("cp1250", errors="replace")
-                    if isinstance(stderr, bytes):
-                        stderr = stderr.decode("cp1250", errors="replace")
-                except Exception as e:
-                    logger.error(f"Błąd dekodowania wyjścia: {str(e)}")
-                    # W przypadku błędu dekodowania, używamy pustego stringa
-                    stdout = ""
-                    stderr = str(e)
+                # Jeśli nie uda się zdekodować jako UTF-8, używamy bezpiecznej metody zastępowania znaków
+                if isinstance(stdout, bytes):
+                    stdout = stdout.decode(
+                        errors="replace"
+                    )  # Użyj domyślnego kodowania z zamienianiem nieznanych znaków
+                if isinstance(stderr, bytes):
+                    stderr = stderr.decode(
+                        errors="replace"
+                    )  # Użyj domyślnego kodowania z zamienianiem nieznanych znaków
 
             if proces.returncode != 0:
                 logger.error(
@@ -900,6 +900,18 @@ class TextureProcessor:
             "głębia_bitowa": None,
             "profil_koloru": None,
         }
+
+        # Sprawdzenie typu output
+        if output is None:
+            logger.warning(f"Brak wyjścia dla pliku: {ścieżka_pliku}")
+            return metadata
+
+        # Upewnienie się, że output jest stringiem
+        if not isinstance(output, str):
+            logger.warning(
+                f"Nieprawidłowy typ wyjścia dla pliku: {ścieżka_pliku}, typ: {type(output)}"
+            )
+            output = str(output)
 
         # Szerokość i wysokość (szuka linii typu "1920 x 1080")
         res_match = re.search(r"(\d+)\s*x\s*(\d+)", output)
