@@ -135,19 +135,8 @@ class Logger:
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
 
-            # Sprawdzenie plików kontrolnych
-            level_files = {
-                "INFO": Logger.LOG_MODE_INFO,
-                "DEBUG": Logger.LOG_MODE_DEBUG,
-                "CRITICAL": Logger.LOG_MODE_CRITICAL,
-            }
-
+            # Wywołanie nowej metody do sprawdzania plików kontrolnych
             initial_mode, file_logging_enabled = self._check_control_files()
-
-            # Zwięzły komunikat inicjalizacyjny
-            init_messages.append(
-                f"Logger v{Logger.VERSION} skonfigurowany: tryb={initial_mode}, plik={'TAK' if file_logging_enabled else 'NIE'}"
-            )
 
             self.logger = logging.getLogger("logger")
             self.log_file: Optional[str] = None
@@ -181,7 +170,9 @@ class Logger:
                         Logger.LOG_MODE_CRITICAL,
                     ]:
                         if not self._configure_file_handler():
-                            pass  # Usunięto dodawanie ostrzeżenia do init_messages
+                            init_messages.append(
+                                f"Ostrzeżenie: Nie udało się skonfigurować handlera pliku."
+                            )
 
                     # Ustaw właściwy tryb
                     if not self.set_logging_mode(initial_mode):
@@ -205,18 +196,11 @@ class Logger:
             Logger._initialized = is_init_successful
 
             # Logowanie zebranych komunikatów inicjalizacyjnych tylko gdy wystąpił krytyczny błąd
-            # lub gdy mamy aktywny handler konsoli i tryb różny od NONE
             if critical_error:
                 print("KRYTYCZNY BŁĄD Loggera: Logger nie będzie działał poprawnie.")
                 print("Zebrane komunikaty inicjalizacyjne:")
                 for msg in init_messages:
                     print(f"  [INIT] {msg}")
-            elif initial_mode != Logger.LOG_MODE_NONE:
-                # Pozwala na wyświetlenie komunikatów inicjalizacyjnych, nawet jeśli nie ma jeszcze handlerów
-                if not critical_error:
-                    print(
-                        f"Logger v{Logger.VERSION} tryb={initial_mode}, plik={'TAK' if file_logging_enabled else 'NIE'}"
-                    )
 
     def _configure_basic_logger(self) -> None:
         """Konfiguruje podstawowe ustawienia loggera."""
@@ -363,9 +347,7 @@ class Logger:
         if not os.path.exists(self.log_dir):
             try:
                 os.makedirs(self.log_dir)
-                print(
-                    f"Utworzono katalog logów: {self.log_dir}"
-                )  # Dodana linia debugowania
+
                 # Log DEBUG jest OK, bo wywoływane gdy logger ma już przynajmniej handler konsoli
                 if self.logger.hasHandlers():
                     self.logger.debug(
@@ -374,10 +356,8 @@ class Logger:
                     )
                 return True
             except OSError as e:
-                # Użyj logger.critical, bo logger powinien już działać
-                print(
-                    f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}"
-                )  # Dodana linia debugowania
+                # Zostawiamy ten print, ponieważ dotyczy krytycznego błędu
+                print(f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}")
                 if self.logger.hasHandlers():
                     self.critical(
                         f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}",
@@ -690,26 +670,18 @@ class Logger:
         initial_mode = Logger.DEFAULT_LOG_MODE
         file_logging_enabled = False
 
-        # Dodajemy bezpośrednie debugowanie
-        print(f"Sprawdzanie plików kontrolnych w katalogu: {script_dir}")
-
         for filename, mode in level_files.items():
             # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
             for suffix in ["", Logger.LOG_FILE_SUFFIX]:
                 filepath = os.path.join(script_dir, filename + suffix)
                 try:
                     if os.path.isfile(filepath):
-                        print(
-                            f"Znaleziono plik kontrolny: {filepath}, rozmiar: {os.path.getsize(filepath)}"
-                        )
                         if os.path.getsize(filepath) == 0:
                             initial_mode = mode
                             file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
-                            print(
-                                f"Ustawianie trybu na: {mode}, logowanie do pliku: {file_logging_enabled}"
-                            )
                             break
                 except Exception as e:
+                    # Zostawiamy ten print dla krytycznych błędów
                     print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
 
         return initial_mode, file_logging_enabled
