@@ -1,4 +1,4 @@
-1. logger.py nie reaguje na plik sterujący INFO, DEBUG, CRITICAL. Trzeba sprawdzić status \_LOG
+1. status się popsłuł
 2. usunąć MB z wartości rozmiar tabeli
 3. dopasować szerokości tabel
 4. porządek w datach. starsza data jest datą utworzenia

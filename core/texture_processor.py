@@ -20,7 +20,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import c4d
+# import c4d
 
 # Stała dla ukrywania okna konsoli na Windows
 CREATE_NO_WINDOW = 0x08000000
@@ -840,9 +840,22 @@ class TextureProcessor:
             cmd = [self.ścieżka_oiiotool, "--info", "-v", ścieżka_pliku]
             logger.debug(f"Wykonuję komendę: {' '.join(cmd)}")
 
-            # Uruchom oiiotool w tle bez pokazywania okna
+            # Uruchom oiiotool w tle
             proces = uruchom_proces_w_tle(cmd)
             stdout, stderr = proces.communicate()
+
+            # Dekodowanie wyjścia z UTF-8
+            try:
+                if isinstance(stdout, bytes):
+                    stdout = stdout.decode("utf-8")
+                if isinstance(stderr, bytes):
+                    stderr = stderr.decode("utf-8")
+            except UnicodeDecodeError:
+                # Jeśli nie uda się zdekodować jako UTF-8, spróbuj z domyślnym kodowaniem systemu
+                if isinstance(stdout, bytes):
+                    stdout = stdout.decode("cp1250", errors="replace")
+                if isinstance(stderr, bytes):
+                    stderr = stderr.decode("cp1250", errors="replace")
 
             if proces.returncode != 0:
                 logger.error(

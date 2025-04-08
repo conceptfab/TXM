@@ -34,9 +34,7 @@ class TextureManagerPlugin(plugins.CommandData):
         """Metoda wywoływana przy uruchomieniu pluginu z menu."""
         try:
             logger.info("=" * 50)
-            logger.info(
-                f"Starting {UIConstants.APP_NAME} Version: {UIConstants.APP_VERSION}"
-            )
+            logger.info(f"{UIConstants.APP_NAME} Version: {UIConstants.APP_VERSION}")
             logger.info("=" * 50)
 
             # Konfiguracja środowiska
@@ -96,10 +94,6 @@ def PluginMessage(id, data):
             if global_plugin_instance.dialog and global_plugin_instance.dialog.IsOpen():
                 global_plugin_instance.dialog.Close()
 
-    # Obsługa komunikatu resetowania aplikacji
-    elif id == c4d.C4DPL_PROGRAM_STARTED:
-        logger.debug("Cinema 4D zostało uruchomione")
-
     return True
 
 
@@ -110,6 +104,9 @@ def RegisterTextureManagerPlugin():
     icon = c4d.bitmaps.BaseBitmap()
     if icon.InitWith(icon_path)[0] == c4d.IMAGERESULT_OK:
         logger.debug("Ikona załadowana pomyślnie")
+        logger.info("=" * 50)
+        logger.info(f"{UIConstants.APP_NAME} Version: {UIConstants.APP_VERSION}")
+        logger.info("=" * 50)
     else:
         logger.warning("Nie udało się załadować ikony")
         icon = None
