@@ -135,10 +135,17 @@ class Logger:
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
 
-            # Wywołanie nowej metody do sprawdzania plików kontrolnych
+            # Wywołanie zmodyfikowanej metody do sprawdzania plików kontrolnych
             initial_mode, file_logging_enabled = self._check_control_files()
+            print(
+                f"Inicjalizacja loggera z trybem: {initial_mode}, logowanie do pliku: {file_logging_enabled}"
+            )
 
             self.logger = logging.getLogger("logger")
+            # Kluczowe: ustawienie poziomu loggera na najniższy możliwy poziom, aby przepuszczał wszystko
+            self.logger.setLevel(logging.DEBUG)
+            self.logger.propagate = False
+
             self.log_file: Optional[str] = None
             self.console_handler: Optional[logging.Handler] = None
             self.file_handler: Optional[logging.Handler] = None
@@ -151,7 +158,11 @@ class Logger:
             Logger.FILE_LOGGING_ENABLED = file_logging_enabled
             self.file_logging_enabled = file_logging_enabled
 
-            self._configure_basic_logger()
+            # Usunięcie istniejących handlerów, aby uniknąć duplikacji
+            for handler in self.logger.handlers[:]:
+                self.logger.removeHandler(handler)
+                handler.close()
+
             self.logging_mode = Logger.LOG_MODE_NONE  # Tymczasowo
 
             # --- Konfiguracja handlerów i ustawienie trybu ---
@@ -163,6 +174,7 @@ class Logger:
                     init_messages.append(
                         "KRYTYCZNY BŁĄD: Nie można zainicjalizować handlera konsoli."
                     )
+                    print("KRYTYCZNY BŁĄD: Nie można zainicjalizować handlera konsoli.")
                 else:
                     # Skonfiguruj plik, jeśli tryb tego wymaga
                     if file_logging_enabled and initial_mode in [
@@ -173,12 +185,27 @@ class Logger:
                             init_messages.append(
                                 f"Ostrzeżenie: Nie udało się skonfigurować handlera pliku."
                             )
+                            print(
+                                f"Ostrzeżenie: Nie udało się skonfigurować handlera pliku."
+                            )
 
-                    # Ustaw właściwy tryb
+                    # Ustaw właściwy tryb - KLUCZOWA ZMIANA: Wywołanie zmodyfikowanej metody
+                    print(f"Ustawianie trybu logowania: {initial_mode}")
                     if not self.set_logging_mode(initial_mode):
                         init_messages.append(
                             f"Ostrzeżenie: Nie udało się ustawić trybu logowania na {initial_mode}."
                         )
+                        print(
+                            f"Ostrzeżenie: Nie udało się ustawić trybu logowania na {initial_mode}."
+                        )
+                    else:
+                        print(f"Tryb logowania {initial_mode} ustawiony pomyślnie")
+                        # Test logowania
+                        self.debug("INICJALIZACJA: Test komunikatu DEBUG")
+                        self.info("INICJALIZACJA: Test komunikatu INFO")
+                        self.warning("INICJALIZACJA: Test komunikatu WARNING")
+                        self.error("INICJALIZACJA: Test komunikatu ERROR")
+                        self.critical("INICJALIZACJA: Test komunikatu CRITICAL")
             else:
                 # Jeśli tryb początkowy to NONE, zapisujemy stan
                 self.logging_mode = Logger.LOG_MODE_NONE
@@ -186,21 +213,14 @@ class Logger:
         except Exception as e:
             is_init_successful = False
             critical_error = True
-            init_messages.append(
-                f"KRYTYCZNY BŁĄD podczas inicjalizacji Loggera: {str(e)}"
-            )
-            print(f"KRYTYCZNY BŁĄD podczas inicjalizacji Loggera: {str(e)}")
+            error_msg = f"KRYTYCZNY BŁĄD podczas inicjalizacji Loggera: {str(e)}"
+            init_messages.append(error_msg)
+            print(error_msg)
             print(traceback.format_exc())
         finally:
             # --- Zakończenie inicjalizacji ---
             Logger._initialized = is_init_successful
-
-            # Logowanie zebranych komunikatów inicjalizacyjnych tylko gdy wystąpił krytyczny błąd
-            if critical_error:
-                print("KRYTYCZNY BŁĄD Loggera: Logger nie będzie działał poprawnie.")
-                print("Zebrane komunikaty inicjalizacyjne:")
-                for msg in init_messages:
-                    print(f"  [INIT] {msg}")
+            print(f"Inicjalizacja loggera zakończona: {is_init_successful}")
 
     def _configure_basic_logger(self) -> None:
         """Konfiguruje podstawowe ustawienia loggera."""
@@ -214,46 +234,39 @@ class Logger:
     def _set_logging_level_for_mode(self, mode: Union[int, str]) -> None:
         """Ustawia odpowiedni poziom logowania dla HANDLERA KONSOLI."""
         if not self.console_handler:
+            print("BŁĄD: Brak handlera konsoli!")
             return
 
         # Usunięcie wszystkich istniejących filtrów
         for filter in self.console_handler.filters[:]:
             self.console_handler.removeFilter(filter)
 
+        print(f"Konfiguracja poziomu logowania dla trybu: {mode}")
+
         if mode == Logger.LOG_MODE_NONE:
             # Wyłączamy wszystkie logi
             self.console_handler.setLevel(logging.CRITICAL + 1)
+            print("Ustawiono poziom: WYŁĄCZONY")
         elif mode == Logger.LOG_MODE_INFO:
             # Ustawiamy poziom na INFO
             self.console_handler.setLevel(logging.INFO)
-            # Nie potrzebujemy dodatkowego filtra, który ogranicza do INFO
-            # Usuń lub zakomentuj poniższą linię:
-            # self.console_handler.addFilter(lambda record: record.levelno == logging.INFO)
+            print("Ustawiono poziom: INFO")
         elif mode == Logger.LOG_MODE_DEBUG:
             # Pokazujemy wszystkie logi od DEBUG wzwyż
             self.console_handler.setLevel(logging.DEBUG)
+            print("Ustawiono poziom: DEBUG")
         elif mode == Logger.LOG_MODE_CRITICAL:
-            # W trybie CRITICAL pokazujemy tylko WARNING i wyższe poziomy
-            self.console_handler.setLevel(logging.WARNING)
-            # Dodajemy filtr, który przepuszcza tylko WARNING i wyższe poziomy
-            self.console_handler.addFilter(
-                lambda record: record.levelno >= logging.WARNING
+            # W trybie CRITICAL pokazujemy WSZYSTKIE poziomy (od DEBUG wzwyż)
+            # ale z rozszerzonym formatem
+            print("Ustawianie poziomu CRITICAL: WSZYSTKIE POZIOMY (DEBUG i wyżej)")
+            self.console_handler.setLevel(logging.DEBUG)  # Zmiana z WARNING na DEBUG
+            print(
+                f"Ustawiono poziom: DEBUG (dla trybu CRITICAL z rozszerzonym formatem)"
             )
         else:
             # Nieznany tryb - ustawiamy na INFO jako domyślny
-            if Logger._initialized and self.logger.hasHandlers():
-                self.warning(
-                    f"Nieznany tryb logowania '{mode}'. Ustawiono poziom INFO dla konsoli.",
-                    stacklevel=Logger.STACKLEVEL + 2,
-                )
-            else:
-                print(
-                    f"Ostrzeżenie Loggera: Nieznany tryb logowania '{mode}'. Ustawiono poziom INFO dla konsoli."
-                )
+            print(f"Nieznany tryb logowania '{mode}'. Ustawianie na INFO")
             self.console_handler.setLevel(logging.INFO)
-            self.console_handler.addFilter(
-                lambda record: record.levelno == logging.INFO
-            )
 
     def _configure_console_handler(self) -> bool:
         """Konfiguruje handler konsoli. Zwraca True w przypadku sukcesu."""
@@ -386,6 +399,7 @@ class Logger:
 
             # Ustawienie trybu
             self.logging_mode = mode
+            print(f"Ustawianie trybu logowania na: {mode}")
 
             # Konfiguracja handlera konsoli
             if mode != Logger.LOG_MODE_NONE:
@@ -398,12 +412,16 @@ class Logger:
 
                 # Dodaj specjalną obsługę dla trybu CRITICAL
                 if mode == Logger.LOG_MODE_CRITICAL:
-                    # Użyj specjalnych formaterów z datą/czasem
+                    # Użyj specjalnych formaterów z datą/czasem dla WSZYSTKICH poziomów
                     if self.console_handler:
+                        print(
+                            "Ustawianie formatowania dla trybu CRITICAL z datą/czasem"
+                        )
                         self.console_handler.setFormatter(
                             LevelSpecificFormatter(
-                                info_fmt=Logger.CONSOLE_FORMAT_INFO,
-                                debug_fmt=Logger.CONSOLE_FORMAT_DEBUG,
+                                # Dodajemy formaty z datą/czasem dla DEBUG i INFO
+                                info_fmt="ℹ [%(asctime)s] %(levelname)-7s: %(filename)s:%(lineno)d → %(message)s",
+                                debug_fmt="⚙ [%(asctime)s] %(levelname)-7s: %(filename)s:%(lineno)d → %(message)s",
                                 warning_fmt=Logger.CONSOLE_FORMAT_WARNING_CRITICAL,
                                 error_fmt=Logger.CONSOLE_FORMAT_ERROR_CRITICAL,
                                 critical_fmt=Logger.CONSOLE_FORMAT_CRITICAL_CRITICAL,
@@ -646,30 +664,49 @@ class Logger:
         """Sprawdza obecność plików kontrolnych i zwraca odpowiedni tryb logowania."""
         script_dir = os.path.dirname(os.path.abspath(__file__))
         level_files = {
-            "INFO": Logger.LOG_MODE_INFO,
+            "CRITICAL": Logger.LOG_MODE_CRITICAL,  # Priorytet dla CRITICAL
             "DEBUG": Logger.LOG_MODE_DEBUG,
-            "CRITICAL": Logger.LOG_MODE_CRITICAL,
+            "INFO": Logger.LOG_MODE_INFO,
         }
 
         initial_mode = Logger.DEFAULT_LOG_MODE
         file_logging_enabled = False
 
-        # Najpierw sprawdź pliki z dokładną nazwą (bez sprawdzania rozmiaru)
+        print(f"Sprawdzanie plików kontrolnych w katalogu: {script_dir}")
+
+        # Najpierw sprawdź CRITICAL
+        critical_path = os.path.join(script_dir, "CRITICAL")
+        if os.path.exists(critical_path):
+            print(f"Znaleziono plik kontrolny: {critical_path}")
+            return (
+                Logger.LOG_MODE_CRITICAL,
+                True,
+            )  # Zawsze włączaj logowanie do pliku dla CRITICAL
+
+        # Potem sprawdź CRITICAL_LOG
+        critical_log_path = os.path.join(script_dir, "CRITICAL_LOG")
+        if os.path.exists(critical_log_path):
+            print(f"Znaleziono plik kontrolny: {critical_log_path}")
+            return Logger.LOG_MODE_CRITICAL, True
+
+        # Potem sprawdź inne tryby
         for filename, mode in level_files.items():
+            if filename == "CRITICAL":  # Pomijamy, już sprawdzone
+                continue
+
             # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
             for suffix in ["", Logger.LOG_FILE_SUFFIX]:
                 filepath = os.path.join(script_dir, filename + suffix)
                 try:
-                    if os.path.isfile(filepath):
-                        # Akceptujemy plik niezależnie od rozmiaru
-                        initial_mode = mode
-                        file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
+                    if os.path.exists(filepath):
                         print(f"Znaleziono plik kontrolny: {filepath}")
-                        return initial_mode, file_logging_enabled
+                        return mode, suffix == Logger.LOG_FILE_SUFFIX
                 except Exception as e:
-                    # Zostawiamy ten print dla krytycznych błędów
                     print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
 
+        print(
+            f"Nie znaleziono plików kontrolnych. Używam trybu domyślnego: {initial_mode}"
+        )
         return initial_mode, file_logging_enabled
 
 
