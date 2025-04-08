@@ -12,7 +12,6 @@ from .logger import Logger
 
 # Inicjalizacja loggera
 logger = Logger()
-logger.set_logging_mode(Logger.LOG_MODE_INFO)
 
 try:
     logger.debug("Próba importu files_worker")

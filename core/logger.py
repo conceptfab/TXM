@@ -150,12 +150,20 @@ class Logger:
                 for suffix in ["", Logger.LOG_FILE_SUFFIX]:
                     filepath = os.path.join(script_dir, filename + suffix)
                     try:
-                        if os.path.isfile(filepath) and os.path.getsize(filepath) == 0:
-                            initial_mode = mode
-                            file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
-                            break
-                    except Exception:
-                        pass
+                        # Dodaj diagnostykę
+                        if os.path.isfile(filepath):
+                            print(
+                                f"Znaleziono plik kontrolny: {filepath}, rozmiar: {os.path.getsize(filepath)}"
+                            )
+                            if os.path.getsize(filepath) == 0:
+                                initial_mode = mode
+                                file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
+                                print(
+                                    f"Ustawianie trybu na: {mode}, logowanie do pliku: {file_logging_enabled}"
+                                )
+                                break
+                    except Exception as e:
+                        print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
 
             # Zwięzły komunikat inicjalizacyjny
             init_messages.append(
@@ -224,14 +232,12 @@ class Logger:
                 print("Zebrane komunikaty inicjalizacyjne:")
                 for msg in init_messages:
                     print(f"  [INIT] {msg}")
-            elif (
-                self.logger.hasHandlers() and self.logging_mode != Logger.LOG_MODE_NONE
-            ):
-                stack_level_for_init_logs = Logger.STACKLEVEL + 1
-                self.logger.debug(
-                    f"Logger v{Logger.VERSION} tryb={self.logging_mode}, plik={'TAK' if self.file_logging_enabled else 'NIE'}",
-                    stacklevel=stack_level_for_init_logs,
-                )
+            elif initial_mode != Logger.LOG_MODE_NONE:
+                # Pozwala na wyświetlenie komunikatów inicjalizacyjnych, nawet jeśli nie ma jeszcze handlerów
+                if not critical_error:
+                    print(
+                        f"Logger v{Logger.VERSION} tryb={initial_mode}, plik={'TAK' if file_logging_enabled else 'NIE'}"
+                    )
 
     def _configure_basic_logger(self) -> None:
         """Konfiguruje podstawowe ustawienia loggera."""
@@ -255,11 +261,11 @@ class Logger:
             # Wyłączamy wszystkie logi
             self.console_handler.setLevel(logging.CRITICAL + 1)
         elif mode == Logger.LOG_MODE_INFO:
-            # Ustawiamy poziom na INFO, ale dodajemy filtr, który przepuszcza TYLKO INFO
+            # Ustawiamy poziom na INFO
             self.console_handler.setLevel(logging.INFO)
-            self.console_handler.addFilter(
-                lambda record: record.levelno == logging.INFO
-            )
+            # Nie potrzebujemy dodatkowego filtra, który ogranicza do INFO
+            # Usuń lub zakomentuj poniższą linię:
+            # self.console_handler.addFilter(lambda record: record.levelno == logging.INFO)
         elif mode == Logger.LOG_MODE_DEBUG:
             # Pokazujemy wszystkie logi od DEBUG wzwyż
             self.console_handler.setLevel(logging.DEBUG)
