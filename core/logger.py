@@ -142,28 +142,7 @@ class Logger:
                 "CRITICAL": Logger.LOG_MODE_CRITICAL,
             }
 
-            initial_mode = Logger.DEFAULT_LOG_MODE
-            file_logging_enabled = False
-
-            for filename, mode in level_files.items():
-                # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
-                for suffix in ["", Logger.LOG_FILE_SUFFIX]:
-                    filepath = os.path.join(script_dir, filename + suffix)
-                    try:
-                        # Dodaj diagnostykę
-                        if os.path.isfile(filepath):
-                            print(
-                                f"Znaleziono plik kontrolny: {filepath}, rozmiar: {os.path.getsize(filepath)}"
-                            )
-                            if os.path.getsize(filepath) == 0:
-                                initial_mode = mode
-                                file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
-                                print(
-                                    f"Ustawianie trybu na: {mode}, logowanie do pliku: {file_logging_enabled}"
-                                )
-                                break
-                    except Exception as e:
-                        print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
+            initial_mode, file_logging_enabled = self._check_control_files()
 
             # Zwięzły komunikat inicjalizacyjny
             init_messages.append(
@@ -366,6 +345,11 @@ class Logger:
             # Dodanie handlera do loggera
             self.logger.addHandler(self.file_handler)
 
+            # Ustawienie poziomu logowania na DEBUG, aby zapisywać wszystkie komunikaty
+            self.file_handler.setLevel(
+                logging.DEBUG
+            )  # Dodana linia - ustawienie poziomu logowania
+
             return True
         except Exception as e:
             self.logger.error(
@@ -379,18 +363,26 @@ class Logger:
         if not os.path.exists(self.log_dir):
             try:
                 os.makedirs(self.log_dir)
+                print(
+                    f"Utworzono katalog logów: {self.log_dir}"
+                )  # Dodana linia debugowania
                 # Log DEBUG jest OK, bo wywoływane gdy logger ma już przynajmniej handler konsoli
-                self.logger.debug(
-                    f"Utworzono katalog logów: {self.log_dir}",
-                    stacklevel=Logger.STACKLEVEL + 1,
-                )
+                if self.logger.hasHandlers():
+                    self.logger.debug(
+                        f"Utworzono katalog logów: {self.log_dir}",
+                        stacklevel=Logger.STACKLEVEL + 1,
+                    )
                 return True
             except OSError as e:
                 # Użyj logger.critical, bo logger powinien już działać
-                self.critical(
-                    f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}",
-                    stacklevel=Logger.STACKLEVEL + 2,
-                )
+                print(
+                    f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}"
+                )  # Dodana linia debugowania
+                if self.logger.hasHandlers():
+                    self.critical(
+                        f"Nie można utworzyć katalogu logów: {self.log_dir}. Błąd: {e}",
+                        stacklevel=Logger.STACKLEVEL + 2,
+                    )
                 return False
         return True
 
@@ -686,6 +678,42 @@ class Logger:
             else:
                 self.logger.exception(message, *args, **kwargs)
 
+    def _check_control_files(self) -> tuple:
+        """Sprawdza obecność plików kontrolnych i zwraca odpowiedni tryb logowania."""
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        level_files = {
+            "INFO": Logger.LOG_MODE_INFO,
+            "DEBUG": Logger.LOG_MODE_DEBUG,
+            "CRITICAL": Logger.LOG_MODE_CRITICAL,
+        }
+
+        initial_mode = Logger.DEFAULT_LOG_MODE
+        file_logging_enabled = False
+
+        # Dodajemy bezpośrednie debugowanie
+        print(f"Sprawdzanie plików kontrolnych w katalogu: {script_dir}")
+
+        for filename, mode in level_files.items():
+            # Sprawdzaj zarówno plik bez sufiksu, jak i z sufiksem _LOG
+            for suffix in ["", Logger.LOG_FILE_SUFFIX]:
+                filepath = os.path.join(script_dir, filename + suffix)
+                try:
+                    if os.path.isfile(filepath):
+                        print(
+                            f"Znaleziono plik kontrolny: {filepath}, rozmiar: {os.path.getsize(filepath)}"
+                        )
+                        if os.path.getsize(filepath) == 0:
+                            initial_mode = mode
+                            file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
+                            print(
+                                f"Ustawianie trybu na: {mode}, logowanie do pliku: {file_logging_enabled}"
+                            )
+                            break
+                except Exception as e:
+                    print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
+
+        return initial_mode, file_logging_enabled
+
 
 # Niestandardowy formatter, który używa różnych formatów dla różnych poziomów logowania
 class LevelSpecificFormatter(logging.Formatter):
@@ -735,3 +763,22 @@ class LevelSpecificFormatter(logging.Formatter):
 
 # Eksport klasy Logger
 __all__ = ["Logger"]
+
+if __name__ == "__main__":
+    # Test loggera
+    print("Testowanie loggera...")
+    log = Logger()
+
+    # Wypisz informacje o konfiguracji
+    print(f"Tryb logowania: {log.logging_mode}")
+    print(f"Logowanie do pliku: {log.file_logging_enabled}")
+    print(f"Ścieżka pliku logu: {log.log_file}")
+
+    # Spróbuj zapisać kilka wiadomości
+    log.info("To jest wiadomość INFO")
+    log.debug("To jest wiadomość DEBUG")
+    log.warning("To jest wiadomość WARNING")
+    log.error("To jest wiadomość ERROR")
+    log.critical("To jest wiadomość CRITICAL")
+
+    print("Test zakończony")
