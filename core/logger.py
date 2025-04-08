@@ -189,7 +189,7 @@ class Logger:
                     )
                 else:
                     # Skonfiguruj plik, jeśli tryb tego wymaga
-                    if initial_mode in [
+                    if file_logging_enabled and initial_mode in [
                         Logger.LOG_MODE_DEBUG,
                         Logger.LOG_MODE_CRITICAL,
                     ]:
@@ -217,13 +217,16 @@ class Logger:
             # --- Zakończenie inicjalizacji ---
             Logger._initialized = is_init_successful
 
-            # Logowanie zebranych komunikatów inicjalizacyjnych
+            # Logowanie zebranych komunikatów inicjalizacyjnych tylko gdy wystąpił krytyczny błąd
+            # lub gdy mamy aktywny handler konsoli i tryb różny od NONE
             if critical_error:
                 print("KRYTYCZNY BŁĄD Loggera: Logger nie będzie działał poprawnie.")
                 print("Zebrane komunikaty inicjalizacyjne:")
                 for msg in init_messages:
                     print(f"  [INIT] {msg}")
-            elif not critical_error and self.logger.hasHandlers():
+            elif (
+                self.logger.hasHandlers() and self.logging_mode != Logger.LOG_MODE_NONE
+            ):
                 stack_level_for_init_logs = Logger.STACKLEVEL + 1
                 self.logger.debug(
                     f"Logger v{Logger.VERSION} tryb={self.logging_mode}, plik={'TAK' if self.file_logging_enabled else 'NIE'}",

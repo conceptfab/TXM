@@ -19,9 +19,6 @@ from views.dialogs import Dlg
 
 # Inicjalizacja loggera
 logger = Logger()
-logger.set_logging_mode(
-    Logger.LOG_MODE_DEBUG
-)  # ten fragment kodu przyszłości do usunięc
 
 # Unikalny ID dla pluginu
 PLUGIN_ID = 9234567  # Należy zamienić na własny unikalny ID
