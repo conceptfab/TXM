@@ -176,9 +176,12 @@ class ListView(c4d.gui.TreeViewFunctions):
             UIConstants.ID_TEXTURE_NAME: ("nazwa", lambda x: str(x)),
             UIConstants.ID_SZEROKOSC: (
                 "szerokosc",
-                lambda x: f"{x:,}".replace(",", " "),
+                lambda x: f"{x:,}".replace(",", " ") if x is not None else "-",
             ),
-            UIConstants.ID_WYSOKOSC: ("wysokosc", lambda x: f"{x:,}".replace(",", " ")),
+            UIConstants.ID_WYSOKOSC: (
+                "wysokosc",
+                lambda x: f"{x:,}".replace(",", " ") if x is not None else "-",
+            ),
             UIConstants.ID_GLEBIA_BITOWA: ("glebia_bitowa", lambda x: f"{x} bit"),
             UIConstants.ID_PROFIL_KOLORU: ("profil_koloru", lambda x: str(x)),
             UIConstants.ID_ROZMIAR_MB: ("rozmiar_mb", lambda x: f"{x:.2f} MB"),

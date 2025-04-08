@@ -1,4 +1,4 @@
-1. status się popsłuł
+1. - - -
 2. usunąć MB z wartości rozmiar tabeli
 3. dopasować szerokości tabel
 4. porządek w datach. starsza data jest datą utworzenia

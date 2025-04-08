@@ -4,7 +4,7 @@ import c4d.gui
 
 class UIConstants:
     APP_NAME = "TXM"
-    APP_VERSION = "0.43a"
+    APP_VERSION = "0.45"
     WINDOW_TITLE = f"{APP_NAME} v{APP_VERSION}"
 
     # ID elementów interfejsu

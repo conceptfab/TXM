@@ -59,7 +59,35 @@ GRAFICZNE_ROZSZERZENIA = {
 }
 
 # Formaty plików wymagające oiiotool
-FORMATY_OIIOTOOL = {".exr", ".hdr", ".tx"}
+FORMATY_OIIOTOOL = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".tiff",
+    ".tif",
+    ".exr",
+    ".hdr",
+    ".dpx",
+    ".fits",
+    ".bmp",
+    ".gif",
+    ".ico",
+    ".cin",
+    ".rla",
+    ".sgi",
+    ".iff",
+    ".psd",
+    ".pnm",
+    ".pbm",
+    ".pgm",
+    ".ppm",
+    ".webp",
+    ".raw",
+    ".dds",
+    ".ktx",
+    ".tga",
+    ".tx",
+}
 
 
 def uruchom_proces_w_tle(polecenie, **kwargs):
@@ -110,7 +138,7 @@ class MetadanePliku:
     profil_koloru: Optional[str] = None
     flaga: str = ""  # "oryginał", "możliwy duplikat", "duplikat" lub ""
     id_grupy: str = ""  # ID grupy duplikatów, np. "01-0", "01-D1" itp.
-    narzędzie_analizy: str = ""  # Narzędzie użyte do analizy metadanych (PIL, oiiotool)
+    narzędzie_analizy: str = ""  # Narzędzie użyte do analizy metadanych (oiiotool)
     błąd_analizy: str = ""  # Informacja o błędzie, jeśli wystąpił
     nazwa: str = ""  # Nazwa pliku bez ścieżki - NOWE POLE
 
@@ -655,7 +683,6 @@ class TextureProcessor:
         # Statystyki dla narzędzi
         stats_narzędzia = {
             "oiiotool": 0,
-            "PIL": 0,
             "brak": 0,
             "błąd": 0,
             "formaty_oiiotool": {"poprawnie": 0, "niepoprawnie": 0},
@@ -710,115 +737,31 @@ class TextureProcessor:
             return index, None, "", ""
 
         try:
-            # Strategia: preferuj oiiotool dla wszystkich formatów, jeśli jest dostępny
+            # Użyj oiiotool do wszystkich obsługiwanych formatów graficznych
             if self.oiiotool_dostępny:
                 try:
                     metadane, narzędzie, błąd = self._pobierz_metadane_oiiotool(meta)
                     if metadane:
                         return index, metadane, narzędzie, błąd
-                    # Jeśli oiiotool nie zwrócił metadanych, spróbuj użyć PIL
                 except Exception as e:
                     logger.error(
                         f"Błąd podczas używania oiiotool dla {meta.ścieżka}: {e}"
                     )
-                    # Kontynuuj i spróbuj użyć PIL jako zapasowego rozwiązania
-
-            # Dla standardowych formatów lub gdy oiiotool zawiódł, użyj PIL
-            try:
-                metadane, narzędzie, błąd = self._pobierz_metadane_pil(meta)
-                return index, metadane, narzędzie, błąd
-            except Exception as e:
-                logger.error(f"Błąd podczas używania PIL dla {meta.ścieżka}: {e}")
-
-                # Jeśli rozszerzenie wymaga oiiotool, a nie użyliśmy go wcześniej
-                if (
-                    meta.rozszerzenie.lower() in FORMATY_OIIOTOOL
-                    and not self.oiiotool_dostępny
-                ):
-                    return (
-                        index,
-                        None,
-                        "błąd",
-                        f"PIL: {str(e)}, oiiotool: niedostępny",
-                    )
-                else:
-                    return index, None, "błąd", f"PIL: {str(e)}"
+                    return index, None, "błąd", f"oiiotool: {str(e)}"
+            else:
+                # Oiiotool niedostępny
+                return (
+                    index,
+                    None,
+                    "błąd",
+                    "Nie znaleziono narzędzia oiiotool, które jest wymagane do analizy plików graficznych",
+                )
 
         except Exception as e:
             logger.exception(
                 f"Krytyczny błąd podczas pobierania metadanych dla {meta.ścieżka}"
             )
             return index, None, "błąd", str(e)
-
-    def _pobierz_metadane_pil(
-        self, meta: MetadanePliku
-    ) -> Tuple[Dict[str, Any], str, str]:
-        """
-        Pobiera metadane przy użyciu biblioteki PIL.
-
-        Args:
-            meta: Metadane pliku.
-
-        Returns:
-            Krotka (słownik_metadanych, nazwa_narzędzia, błąd).
-        """
-        try:
-            from PIL import Image
-
-            # Normalizacja ścieżki
-            ścieżka_pliku = os.path.normpath(meta.ścieżka)
-
-            # Logowanie próby otwarcia pliku
-            logger.debug(f"Próba otwarcia pliku przez PIL: {ścieżka_pliku}")
-
-            # Otwórz obraz z zachowaniem dodatkowych informacji
-            img = Image.open(ścieżka_pliku)
-
-            # Pobierz podstawowe informacje
-            szerokość, wysokość = img.size
-
-            # Sprawdzanie kanału alpha - ZOPTYMALIZOWANE
-            img_mode = img.mode
-            ma_alpha = (
-                img_mode.endswith("A") or "A" in img_mode or img_mode in ["RGBA", "LA"]
-            )
-
-            # Głębia bitowa i tryb koloru
-            głębia_bitowa = 8  # Domyślnie
-            if img_mode in ["I", "F"]:
-                głębia_bitowa = 32
-            elif img_mode in ["I;16", "RGB;16", "LA;16"]:
-                głębia_bitowa = 16
-
-            # Profil koloru
-            profil_koloru = "sRGB"  # Domyślnie
-            if "icc_profile" in img.info:
-                profil_koloru = "Embedded ICC"
-
-            # Dodatkowe informacje diagnostyczne
-            logger.debug(
-                f"PIL informacje o pliku {ścieżka_pliku}: tryb={img_mode}, format={img.format}, info={str(img.info)[:100]}..."
-            )
-
-            return (
-                {
-                    "szerokość": szerokość,
-                    "wysokość": wysokość,
-                    "kanał_alpha": ma_alpha,
-                    "głębia_bitowa": głębia_bitowa,
-                    "profil_koloru": profil_koloru,
-                },
-                "PIL",
-                "",
-            )
-        except ImportError as e:
-            logger.error(f"Biblioteka PIL jest niedostępna: {e}")
-            return None, "brak", "Biblioteka PIL jest niedostępna"
-        except Exception as e:
-            logger.exception(
-                f"Błąd podczas analizy pliku {meta.ścieżka} przez PIL: {e}"
-            )
-            return None, "błąd", f"PIL: {str(e)}"
 
     def _pobierz_metadane_oiiotool(
         self, meta: MetadanePliku
@@ -847,15 +790,21 @@ class TextureProcessor:
             # Dekodowanie wyjścia z UTF-8
             try:
                 if isinstance(stdout, bytes):
-                    stdout = stdout.decode("utf-8")
+                    stdout = stdout.decode("utf-8", errors="replace")
                 if isinstance(stderr, bytes):
-                    stderr = stderr.decode("utf-8")
+                    stderr = stderr.decode("utf-8", errors="replace")
             except UnicodeDecodeError:
                 # Jeśli nie uda się zdekodować jako UTF-8, spróbuj z domyślnym kodowaniem systemu
-                if isinstance(stdout, bytes):
-                    stdout = stdout.decode("cp1250", errors="replace")
-                if isinstance(stderr, bytes):
-                    stderr = stderr.decode("cp1250", errors="replace")
+                try:
+                    if isinstance(stdout, bytes):
+                        stdout = stdout.decode("cp1250", errors="replace")
+                    if isinstance(stderr, bytes):
+                        stderr = stderr.decode("cp1250", errors="replace")
+                except Exception as e:
+                    logger.error(f"Błąd dekodowania wyjścia: {str(e)}")
+                    # W przypadku błędu dekodowania, używamy pustego stringa
+                    stdout = ""
+                    stderr = str(e)
 
             if proces.returncode != 0:
                 logger.error(
@@ -1094,9 +1043,6 @@ class TextureProcessor:
             ),
             "rozszerzenia": {},
             "narzędzia_analizy": stats_narzędzia,
-            "liczba_plików_specjalistycznych": sum(
-                1 for m in metadane_plików if m.rozszerzenie.lower() in FORMATY_OIIOTOOL
-            ),
             "rozszerzenia_z_błędami": {},
         }
 
