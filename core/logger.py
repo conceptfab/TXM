@@ -676,10 +676,9 @@ class Logger:
                 filepath = os.path.join(script_dir, filename + suffix)
                 try:
                     if os.path.isfile(filepath):
-                        if os.path.getsize(filepath) == 0:
-                            initial_mode = mode
-                            file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
-                            break
+                        initial_mode = mode
+                        file_logging_enabled = suffix == Logger.LOG_FILE_SUFFIX
+                        break
                 except Exception as e:
                     # Zostawiamy ten print dla krytycznych błędów
                     print(f"Błąd podczas sprawdzania pliku {filepath}: {e}")
